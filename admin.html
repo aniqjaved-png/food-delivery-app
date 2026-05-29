@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel – Food Delivery</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --sidebar: #1e293b;
+    --card: #1e293b;
+    --border: #334155;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --orange: #f97316;
+    --orange-light: #fed7aa;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #eab308;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* Login overlay */
+  #login-overlay {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; z-index: 999;
+  }
+  .login-card {
+    background: var(--sidebar); border-radius: 16px; padding: 40px 36px;
+    width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .login-card h2 { text-align: center; font-size: 1.4rem; margin-bottom: 6px; }
+  .login-card p { text-align: center; color: var(--muted); font-size: 0.85rem; margin-bottom: 28px; }
+  .login-card input {
+    width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
+    border-radius: 8px; background: var(--bg); color: var(--text); font-size: 0.95rem; margin-bottom: 14px;
+  }
+  .login-card input:focus { outline: none; border-color: var(--orange); }
+  .login-card button {
+    width: 100%; padding: 12px; background: var(--orange); color: white;
+    border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer;
+  }
+  .login-card button:hover { opacity: 0.9; }
+  #login-error { color: var(--red); font-size: 0.82rem; margin-top: 10px; text-align: center; min-height: 18px; }
+
+  /* Layout */
+  #app { display: none; flex: 1; }
+  header {
+    background: var(--sidebar); border-bottom: 1px solid var(--border);
+    padding: 14px 24px; display: flex; align-items: center; justify-content: space-between;
+  }
+  header h1 { font-size: 1.1rem; font-weight: 700; color: var(--orange); }
+  header .right { display: flex; align-items: center; gap: 14px; }
+  header .right a { color: var(--muted); text-decoration: none; font-size: 0.82rem; }
+  header .right a:hover { color: var(--text); }
+  .logout-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+  .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+  .main { display: flex; flex: 1; }
+
+  /* Sidebar */
+  aside {
+    width: 220px; background: var(--sidebar); border-right: 1px solid var(--border);
+    padding: 20px 0; flex-shrink: 0; overflow-y: auto;
+  }
+  .sidebar-section { padding: 6px 16px 4px; font-size: 0.68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .sidebar-btn {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 16px;
+    background: none; border: none; color: var(--muted); font-size: 0.875rem; cursor: pointer;
+    text-align: left; transition: all 0.15s; border-left: 3px solid transparent;
+  }
+  .sidebar-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .sidebar-btn.active { color: var(--orange); border-left-color: var(--orange); background: rgba(249,115,22,0.08); }
+  .sidebar-btn .icon { width: 18px; text-align: center; font-size: 1rem; }
+  .sidebar-btn .count-badge {
+    margin-left: auto; background: var(--border); color: var(--muted);
+    font-size: 0.7rem; padding: 1px 7px; border-radius: 10px;
+  }
+
+  /* Content */
+  .content { flex: 1; padding: 24px; overflow: auto; }
+
+  /* Stats grid */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--orange); }
+  .stat-card .icon { font-size: 1.6rem; margin-bottom: 10px; }
+  .stat-card .val { font-size: 1.6rem; font-weight: 700; color: var(--orange); }
+  .stat-card .lbl { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+
+  /* Table panel */
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .panel-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: gap;
+  }
+  .panel-header h3 { font-size: 1rem; font-weight: 600; }
+  .panel-header .row-count { color: var(--muted); font-size: 0.8rem; }
+
+  .search-box {
+    padding: 7px 12px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-size: 0.85rem; width: 220px;
+  }
+  .search-box:focus { outline: none; border-color: var(--orange); }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  thead th {
+    text-align: left; padding: 10px 14px; background: rgba(0,0,0,0.2);
+    color: var(--muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 0.06em; white-space: nowrap; border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.1s; }
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+  tbody td { padding: 10px 14px; color: var(--text); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  tbody tr:last-child { border-bottom: none; }
+
+  .badge {
+    display: inline-block; padding: 2px 9px; border-radius: 12px;
+    font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .badge.delivered, .badge.paid { background: rgba(34,197,94,0.15); color: var(--green); }
+  .badge.pending { background: rgba(234,179,8,0.15); color: var(--yellow); }
+  .badge.cancelled { background: rgba(239,68,68,0.15); color: var(--red); }
+
+  .loading { text-align: center; padding: 48px; color: var(--muted); font-size: 0.9rem; }
+  .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty { text-align: center; padding: 48px; color: var(--muted); }
+
+  .refresh-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+  }
+  .refresh-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  #dashboard { display: block; }
+  .section-page { display: none; }
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-overlay">
+  <div class="login-card">
+    <h2>🔒 Admin Panel</h2>
+    <p>Food Delivery Management System</p>
+    <input type="password" id="pass-input" placeholder="Enter admin password" onkeydown="if(event.key==='Enter') doLogin()">
+    <button onclick="doLogin()">Login</button>
+    <div id="login-error"></div>
+    <p style="text-align:center;margin-top:16px;font-size:0.75rem;color:var(--muted)">Default: admin123</p>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <header>
+    <h1>🍔 Admin Panel</h1>
+    <div class="right">
+      <a href="/">← Public Form</a>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <aside id="sidebar">
+      <div class="sidebar-section">Overview</div>
+      <button class="sidebar-btn active" onclick="showDashboard(this)"><span class="icon">📊</span> Dashboard</button>
+
+      <div class="sidebar-section" style="margin-top:10px">Tables</div>
+      <button class="sidebar-btn" onclick="loadTable('Customer',this)"><span class="icon">👤</span> Customers <span class="badge-count" id="cnt-Customer"></span></button>
+      <button class="sidebar-btn" onclick="loadTable('Restaurant',this)"><span class="icon">🏪</span> Restaurants <span class="badge-count" id="cnt-Restaurant"></span></button>
+      <button class="sidebar-btn" onclick="loadTable('FoodItem',this)"><span class="icon">🍽️</span> Food Items <span class="badge-count" id="cnt-FoodItem"></span></button>
+      <button class="sidebar-btn" onclick="loadTable('Category',this)"><span class="icon">🏷️</span> Categories <span class="badge-count" id="cnt-Category"></span></button>
+      <button class="sidebar-btn" onclick="loadTable('Orders',this)"><span class="icon">📦</span> Orders <span class="badge-count" id="cnt-Orders"></span></button>
+      <button class="sidebar-btn" onclick="loadTable('OrderItem',this)"><span class="icon">🧾</span> Order Items <span class="badge-count" id="cnt-OrderItem"></span></button>
+      <button class="sidebar-btn" onclick="loadTable('Payment',this)"><span class="icon">💳</span> Payments <span class="badge-count" id="cnt-Payment"></span></button>
+      <button class="sidebar-btn" onclick="loadTable('PaymentMethod',this)"><span class="icon">💰</span> Pay Methods <span class="badge-count" id="cnt-PaymentMethod"></span></button>
+      <button class="sidebar-btn" onclick="loadTable('Delivery',this)"><span class="icon">🚚</span> Deliveries <span class="badge-count" id="cnt-Delivery"></span></button>
+      <button class="sidebar-btn" onclick="loadTable('DeliveryDriver',this)"><span class="icon">🛵</span> Drivers <span class="badge-count" id="cnt-DeliveryDriver"></span></button>
+      <button class="sidebar-btn" onclick="loadTable('Review',this)"><span class="icon">⭐</span> Reviews <span class="badge-count" id="cnt-Review"></span></button>
+      <button class="sidebar-btn" onclick="loadTable('Address',this)"><span class="icon">📍</span> Addresses <span class="badge-count" id="cnt-Address"></span></button>
+      <button class="sidebar-btn" onclick="loadTable('Cart',this)"><span class="icon">🛒</span> Carts <span class="badge-count" id="cnt-Cart"></span></button>
+      <button class="sidebar-btn" onclick="loadTable('CartItem',this)"><span class="icon">🛍️</span> Cart Items <span class="badge-count" id="cnt-CartItem"></span></button>
+      <button class="sidebar-btn" onclick="loadTable('Admin',this)"><span class="icon">🔑</span> Admins <span class="badge-count" id="cnt-Admin"></span></button>
+    </aside>
+
+    <div class="content">
+      <!-- Dashboard -->
+      <div id="dashboard">
+        <div class="stats-grid" id="stats-grid">
+          <div class="loading"><div class="spinner"></div><br>Loading stats…</div>
+        </div>
+      </div>
+
+      <!-- Table view -->
+      <div id="table-view" class="section-page">
+        <div class="panel">
+          <div class="panel-header">
+            <div style="display:flex;align-items:center;gap:12px">
+              <h3 id="table-title">—</h3>
+              <span class="row-count" id="table-count"></span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input class="search-box" id="search-box" placeholder="Search…" oninput="filterTable()">
+              <button class="refresh-btn" onclick="reloadCurrentTable()">↻ Refresh</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <div id="table-body"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let adminPass = '';
+let currentTable = '';
+let allRows = [];
+
+function doLogin() {
+  const p = document.getElementById('pass-input').value;
+  document.getElementById('login-error').textContent = '';
+  fetch('/api/admin-stats', { headers: { 'x-admin-pass': p } })
+    .then(r => {
+      if (r.status === 401) throw new Error('Wrong password');
+      return r.json();
+    })
+    .then(data => {
+      adminPass = p;
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      document.getElementById('app').style.flexDirection = 'column';
+      renderStats(data);
+    })
+    .catch(e => {
+      document.getElementById('login-error').textContent = e.message;
+    });
+}
+
+function logout() {
+  adminPass = '';
+  document.getElementById('login-overlay').style.display = 'flex';
+  document.getElementById('pass-input').value = '';
+}
+
+function renderStats(data) {
+  const g = document.getElementById('stats-grid');
+  const items = [
+    { icon: '👤', val: data.customers, lbl: 'Total Customers' },
+    { icon: '📦', val: data.orders, lbl: 'Total Orders' },
+    { icon: '💵', val: 'Rs.' + Number(data.revenue).toLocaleString(), lbl: 'Total Revenue' },
+    { icon: '🏪', val: data.restaurants, lbl: 'Restaurants' },
+    { icon: '✅', val: data.delivered, lbl: 'Delivered' },
+    { icon: '⏳', val: data.pending, lbl: 'Pending' },
+    { icon: '⭐', val: data.reviews, lbl: 'Reviews' },
+    { icon: '📈', val: data.avgRating + ' / 5', lbl: 'Avg Rating' },
+  ];
+  g.innerHTML = items.map(i => `
+    <div class="stat-card">
+      <div class="icon">${i.icon}</div>
+      <div class="val">${i.val}</div>
+      <div class="lbl">${i.lbl}</div>
+    </div>`).join('');
+}
+
+function showDashboard(btn) {
+  document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('table-view').style.display = 'none';
+  // refresh stats
+  fetch('/api/admin-stats', { headers: { 'x-admin-pass': adminPass } })
+    .then(r => r.json()).then(renderStats);
+}
+
+async function loadTable(table, btn) {
+  document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentTable = table;
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('table-view').style.display = 'block';
+  document.getElementById('table-title').textContent = table;
+  document.getElementById('table-count').textContent = '';
+  document.getElementById('table-body').innerHTML = '<div class="loading"><div class="spinner"></div><br>Loading…</div>';
+  document.getElementById('search-box').value = '';
+
+  const res = await fetch('/api/admin/' + table, { headers: { 'x-admin-pass': adminPass } });
+  const rows = await res.json();
+  allRows = rows;
+  renderTable(rows, table);
+}
+
+function reloadCurrentTable() {
+  const activeBtn = document.querySelector('.sidebar-btn.active');
+  if (currentTable) loadTable(currentTable, activeBtn);
+}
+
+function renderTable(rows, table) {
+  document.getElementById('table-count').textContent = rows.length + ' rows';
+  const el = document.getElementById('cnt-' + table);
+  if (el) el.textContent = rows.length;
+
+  if (!rows.length) {
+    document.getElementById('table-body').innerHTML = '<div class="empty">No records found.</div>';
+    return;
+  }
+
+  const cols = Object.keys(rows[0]);
+  const statusCols = new Set(['DeliveryStatus','PaymentStatus']);
+  const ratingCol = 'Rating';
+
+  const thead = `<thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
+  const tbody = '<tbody>' + rows.map(row => {
+    const cells = cols.map(col => {
+      let val = row[col];
+      if (val === null || val === undefined) val = '—';
+      if (statusCols.has(col)) {
+        const cls = String(val).toLowerCase();
+        return `<td><span class="badge ${cls}">${val}</span></td>`;
+      }
+      if (col === ratingCol && !isNaN(val)) {
+        return `<td>${'⭐'.repeat(Number(val))} (${val})</td>`;
+      }
+      return `<td title="${val}">${val}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('') + '</tbody>';
+
+  document.getElementById('table-body').innerHTML = `<table>${thead}${tbody}</table>`;
+}
+
+function filterTable() {
+  const q = document.getElementById('search-box').value.toLowerCase();
+  if (!q) { renderTable(allRows, currentTable); return; }
+  const filtered = allRows.filter(row =>
+    Object.values(row).some(v => v !== null && String(v).toLowerCase().includes(q))
+  );
+  renderTable(filtered, currentTable);
+}
+</script>
+</body>
+</html>
